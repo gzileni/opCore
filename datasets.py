@@ -4,12 +4,40 @@ import logging
 import datetime
 import xml.etree.ElementTree as ET
 import shapely.geometry
-import zipfile
 import sys
+import uuid
 
-from .postgis import send_ncfiles
+from postgis import send_ncfiles
 
 shapely.speedups.disable()
+
+# delete file downloaded
+def delete_folder(path):
+    for root, dirs, files in os.walk(path, topdown=False):
+        files.sort()
+        # check corrupted files
+        for f in files:
+            os.remove(os.path.join(root, f))
+    os.rmdir(path)
+    logging.info(str(datetime.datetime.now()) +
+                 ' -  delete datasets from : ' + path)
+
+# create download files
+def create_download_folder(app, product):
+
+    rootpath = os.path.abspath(os.getcwd()) + '/' + app.config['DOWNLOAD_FOLDER']
+    if (not os.path.isdir(rootpath)):
+        os.mkdir(rootpath)
+
+    rootpath += '/' + str(uuid.uuid4())
+    if (not os.path.isdir(rootpath)):
+        os.mkdir(rootpath)
+
+    pathFiles = rootpath + "/" + product
+    if (not os.path.isdir(pathFiles)):
+        os.mkdir(pathFiles)
+
+    return pathFiles, rootpath
 
 # get footprint to query
 def getFootprint(bbox):
@@ -17,7 +45,7 @@ def getFootprint(bbox):
     return 'footprint:"Intersects(' + str(polygon) + ')"'
 
 # download
-def run(app, url, f, username, password, unzip, product, index, path, bbox):
+def run(app, url, f, username, password, product, path, bbox):
       
       result = ''
       netCDFile = open(f, "wb")
@@ -40,16 +68,9 @@ def run(app, url, f, username, password, unzip, product, index, path, bbox):
                   netCDFile.write(chunk)
             netCDFile.close()
 
-            if (unzip):
-                  dirUnzip = str(path) + '/' + product + "_" + str(index)
-                  # unzip files
-                  with zipfile.ZipFile(path, 'r') as zip_ref:
-                        zip_ref.extractall(dirUnzip)
-                  result = dirUnzip
-            else:
-                  logging.info(str(datetime.datetime.now()) +
-                        ' -  Download NETCD datasets Ok to ' + path)
-                  result = path
+            logging.info(str(datetime.datetime.now()) +
+                  ' -  Download NETCD datasets Ok to ' + path)
+            result = path
 
             # -----------------------------------------
             # update postgis

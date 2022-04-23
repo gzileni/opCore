@@ -8,6 +8,6 @@
         "database": "ambiente",
         "schema": "copernicus",
         "chunksize": 10000,
-        "posrt": 5432
+        "port": 5432
     }
 }        
