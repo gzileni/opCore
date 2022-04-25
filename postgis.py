@@ -4,6 +4,8 @@ from sqlalchemy.schema import *
 
 import shapely.geometry
 import geopandas
+import logging
+import telegram_send
 
 from .core import load
 
@@ -57,4 +59,65 @@ def get_json(params):
     df['created_at'] = df['created_at'].astype(str)
 
     return df.to_json(na="drop", show_bbox=True)
-            
+
+# update postgis         
+def update_db(data, params):
+
+    try:
+
+        db = load()["postgis"]
+        engine = _get_engine(db)
+
+        # create databrame
+        pdataf = data.to_dataframe().dropna()
+        
+        s = geopandas.GeoSeries.from_xy(
+            pdataf.latitude, pdataf.longitude,
+            crs=params["crs"])  # .buffer(0.035, resolution=4, join_style=1)
+
+        print('--- creating geometries ... ')
+        # create geometry from bbox to intersect dataframe
+        p1 = shapely.geometry.box(*params["bbox"], ccw=True)
+        geodf_l = geopandas.GeoDataFrame(
+            geometry=geopandas.GeoSeries([p1]), crs=params["crs"])
+
+        # ---------------------------------------------------------------
+        # create dataframe with all dataframe's coordinates
+        geodf_r = geopandas.GeoDataFrame(
+            pdataf, geometry=s, crs=params["crs"])
+
+        # update db to schema warning with all coordinates
+        geodf = geopandas.sjoin(geodf_r, geodf_l)
+        print('--- run spatial joins ... ')
+        # geodf = geodf.drop['index_right']
+        geodf.to_postgis(table,
+                        engine,
+                        schema=db["schema"],
+                        if_exists="append",
+                        chunksize=db["chunksize"])
+
+        if (len(geodf) > 0):
+            # update db
+            print(geodf.head(5))
+            msg = '\nNuovi dati per inquinante ' + \
+                table + \
+                ' aggiornati.'
+            logging.info(msg)
+            print(msg)
+            telegram_send.send(messages=[msg])
+            return '', False
+    except OSError as err:
+        msg = "OS error: {0}".format(err)
+        return msg, True
+    except ValueError:
+        msg = "Could not convert data."
+        return msg, True
+    except BaseException as err:
+        msg = "Unexpected " + type(err)
+        return msg, True
+    except:
+        msg = 'Error to save to database '
+        return msg, False
+        #print(msg)
+        #logging.error(msg)
+        #os.remove(path)
