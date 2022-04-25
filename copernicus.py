@@ -7,7 +7,7 @@ import shapely.geometry
 import sys
 import uuid
 
-from postgis import send_ncfiles
+from .postgis import send_ncfiles
 
 shapely.speedups.disable()
 

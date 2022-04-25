@@ -1,25 +1,11 @@
-import json
-import pathlib
-import os
-
 from sqlalchemy import *
 from sqlalchemy.engine import create_engine
 from sqlalchemy.schema import *
 
 import shapely.geometry
-import xarray as xr
 import geopandas
-import pandas as pd
-import dask
-import logging
-import datetime
 
-from .config import load
-
-# ----------------------------
-# Info:
-# https://medium.com/@robertbracco1/how-to-write-a-telegram-bot-to-send-messages-with-python-bcdf45d0a580
-import telegram_send
+from .core import load
 
 shapely.speedups.disable()
 
