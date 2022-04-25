@@ -1,0 +1,13 @@
+{
+    "uploads": "uploads",
+    "downloads": "downloads",
+    "postgis": {
+        "username": "openpuglia",
+        "password": "",
+        "url": "",
+        "database": "",
+        "schema": "",
+        "chunksize": 10000,
+        "port": 5432
+    }
+}        
